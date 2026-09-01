@@ -1,6 +1,6 @@
 import httpx
 from openai import OpenAI
-from oci_openai import OciInstancePrincipalAuth, OciSessionAuth
+from oci_genai_auth import OciInstancePrincipalAuth, OciSessionAuth
 
 from config import AUTH_MODE, BASE_URL, OCI_CONFIG_PROFILE, PROJECT_ID
 

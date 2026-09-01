@@ -19,12 +19,12 @@ Al finalizar, cada participante podrá:
 
 | Etapa | Tema | Resultado |
 |---|---|---|
-| 1 | Consumo directo | Una pregunta abierta sobre el proceso universitario. |
-| 2 | Cambio de modelo | Selección por alias lógico, sin editar código. |
-| 3 | Multimodal | Análisis y contexto de los documentos entregados. |
-| 4 | Salida estructurada | Un JSON persistente de la revisión. |
-| 5 | Validación externa | Corroboración no sensible del país emisor. |
-| 6 | Base vectorizada local y RAG | Decisión contrastada con políticas institucionales. |
+| 1 | La primera conversación | Una pregunta abierta sobre el proceso universitario. |
+| 2 | Un solo código, varios modelos | Selección por alias lógico, sin editar código. |
+| 3 | Los documentos cuentan su historia | Análisis y contexto de los documentos entregados. |
+| 4 | De documentos a decisiones estructuradas | Un JSON persistente de la revisión. |
+| 5 | Contrastar antes de confiar | Corroboración no sensible del país emisor. |
+| 6 | Decidir con conocimiento institucional | Decisión contrastada con políticas institucionales. |
 
 ```text
 Documentos del estudiante → OCI Generative AI → JSON persistente
@@ -228,11 +228,14 @@ Si el repositorio ya existe en la VM, entra en su directorio y ejecuta únicamen
 
 ```bash
 python -m pip install -r oci-genai-oci-only/requirements.txt
+python -c "from oci_genai_auth import OciInstancePrincipalAuth; print('Autenticación IAM lista')"
 ```
 
-### 4. Corregir SQLite y validar ChromaDB
+El resultado esperado de la segunda instrucción es `Autenticación IAM lista`. Este paquete permite que la VM firme solicitudes con su *instance principal*.
 
-**Descripción:** Oracle Linux 9 incluye SQLite 3.26, pero ChromaDB requiere 3.35 o posterior. El proyecto instala `pysqlite3-binary` y lo activa solo antes de importar ChromaDB. Este comando crea la carpeta persistente `.chroma` y valida la colección local.
+### 4. Inicializar ChromaDB
+
+**Descripción:** El proyecto incluye `pysqlite3-binary` para proporcionar la versión de SQLite que utiliza ChromaDB en Oracle Linux 9. Este comando crea la carpeta persistente `.chroma` y valida la colección local.
 
 ```bash
 cd ~/ai-workshop-genai/oci-genai-oci-only
@@ -243,7 +246,7 @@ print(f"ChromaDB listo: {collection().name}")
 PY
 ```
 
-El resultado esperado incluye `ChromaDB listo: university_policies`. Si antes ejecutaste la validación anterior, vuelve a instalar dependencias y usa este comando; ya no importes `chromadb` directamente en Oracle Linux 9.
+El resultado esperado incluye `ChromaDB listo: university_policies`.
 
 ### 5. Activar el entorno en cada conexión
 
@@ -313,7 +316,7 @@ comprobante_abono.png
 documento_identidad.jpg
 ```
 
-### 1. Pregunta abierta
+### 1. La primera conversación
 
 ```bash
 python src/01_basic/01_hello_response.py --model gemini
@@ -321,17 +324,32 @@ python src/01_basic/01_hello_response.py --model gemini
 
 **Validación:** debe imprimirse `MODEL: gemini` y una respuesta sobre el uso de modelos multimodales en una universidad.
 
-### 2. Cambio de modelo
+### 2. Un solo código, varios modelos
 
-El alias se define una sola vez en `.env` mediante `OCI_GENAI_MODELS_JSON`. Para cambiar de modelo, cambia únicamente el argumento:
+El argumento `--model` acepta un alias definido en `.env` mediante `OCI_GENAI_MODELS_JSON` o un identificador completo de OCI. Esto permite cambiar de modelo sin modificar el código:
 
 ```bash
 python src/02_model_switching/02_hello_response.py --model grok
+
+# También se puede usar el identificador completo del modelo
+python src/02_model_switching/02_hello_response.py --model openai.gpt-oss-20b
 ```
 
-**Validación:** debe imprimirse `MODEL: grok`. El único cambio es el alias pasado como argumento.
+**Validación:** debe imprimirse `MODEL: grok` o `MODEL: openai.gpt-oss-20b`, según el valor enviado. El único cambio es el argumento del comando.
 
-### 3. Análisis multimodal
+Modelos recomendados para explorar en esta etapa:
+
+| Modelo | Identificador de ejemplo | Cuándo usarlo en el workshop |
+|---|---|---|
+| Google Gemini 2.5 Flash | `google.gemini-2.5-flash` | Punto de partida equilibrado para texto, imágenes y velocidad. |
+| Google Gemini 2.5 Pro | `google.gemini-2.5-pro` | Análisis más profundo de documentos y razonamiento complejo. |
+| Google Gemini 2.5 Flash-Lite | `google.gemini-2.5-flash-lite` | Pruebas de alto volumen con prioridad en velocidad y costo. |
+| xAI Grok 4.3 | `xai.grok-4.3` | Comparar una alternativa de razonamiento dentro del mismo código. |
+| OpenAI gpt-oss-20b / gpt-oss-120b | `openai.gpt-oss-20b` / `openai.gpt-oss-120b` | Explorar modelos OpenAI de pesos abiertos disponibles en OCI. |
+
+La disponibilidad depende de la región, el tipo de endpoint y la configuración del tenancy. Consulta la lista oficial completa de [modelos de OCI Generative AI por región](https://docs.oracle.com/en-us/iaas/Content/generative-ai/model-endpoint-regions.htm) antes de actualizar `OCI_GENAI_MODELS_JSON`. Para el workshop en Chicago, verifica específicamente la columna **US Midwest (Chicago)**.
+
+### 3. Los documentos cuentan su historia
 
 ```bash
 python src/03_multimodal/03_analyze_documents.py solicitud-001 --model gemini
@@ -341,7 +359,7 @@ El código transforma imágenes y hasta tres páginas de cada PDF en entradas vi
 
 **Validación:** debe identificar los tres tipos documentales y señalar que los archivos son ficticios o de demostración.
 
-### 4. Salida estructurada y persistente
+### 4. De documentos a decisiones estructuradas
 
 ```bash
 python src/04_structured_output/04_structured_documents.py solicitud-001 --model gemini
@@ -355,7 +373,7 @@ cat data/results/solicitud-001/document_review.json
 
 **Validación:** el JSON contiene `documents`, `missing_required_documents`, `decision` y `human_review_required`.
 
-### 5. Validación externa
+### 5. Contrastar antes de confiar
 
 ```bash
 python src/05_external_validation/05_validate_country.py solicitud-001
@@ -369,7 +387,7 @@ cat data/results/solicitud-001/external_validation.json
 
 **Validación:** si el modelo extrajo `PER`, la respuesta debe indicar el resultado de la corroboración del país. Una falla de la API no invalida por sí sola la solicitud.
 
-### 6. Base de conocimiento y RAG local
+### 6. Decidir con conocimiento institucional
 
 ```bash
 python src/06_rag/06_index_knowledge.py

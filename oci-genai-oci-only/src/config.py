@@ -59,11 +59,8 @@ def resolve_model(model: str | None = None) -> str:
 
 def validate_model_alias(model: str | None = None) -> str:
     logical = (model or DEFAULT_MODEL).strip()
-    if logical not in MODEL_ALIASES:
-        allowed = ", ".join(MODEL_ALIASES.keys())
-        raise ValueError(
-            f"Unknown model alias '{logical}'. Allowed: {allowed}"
-        )
+    if not logical:
+        raise ValueError("Debe indicar un alias o identificador de modelo.")
     return logical
 
 
