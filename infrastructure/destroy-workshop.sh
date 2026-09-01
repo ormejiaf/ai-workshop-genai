@@ -157,9 +157,9 @@ read -r -p "Escriba DELETE_WORKSHOP para continuar: " confirmation
 if [[ "$HAS_VM" == true ]]; then
   echo "Eliminando VM y red..."
   if [[ -r "$STATE_FILE" ]]; then
-    STATE_FILE="$STATE_FILE" "$SCRIPT_DIR/destroy-vm.sh"
+    STATE_FILE="$STATE_FILE" bash "$SCRIPT_DIR/destroy-vm.sh"
   else
-    REGION="$REGION" "$SCRIPT_DIR/destroy-vm.sh" --instance-id "$INSTANCE_ID_ARG"
+    REGION="$REGION" bash "$SCRIPT_DIR/destroy-vm.sh" --instance-id "$INSTANCE_ID_ARG"
   fi
 fi
 
