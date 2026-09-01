@@ -24,12 +24,20 @@ def require_env(name: str) -> str:
     return value
 
 
-API_KEY = require_env("OCI_GENAI_API_KEY")
 PROJECT_ID = require_env("OCI_GENAI_PROJECT_ID")
 REGION = require_env("OCI_GENAI_REGION")
 BASE_URL = require_env("OCI_GENAI_BASE_URL")
-VECTOR_STORE_ID = require_env("OCI_GENAI_VECTOR_STORE_ID")
+# La etapa RAG local no usa un OCI Vector Store. Se mantiene como variable
+# opcional mientras se migra el material anterior del workshop.
+VECTOR_STORE_ID = os.getenv("OCI_GENAI_VECTOR_STORE_ID")
 DEFAULT_MODEL = require_env("OCI_GENAI_DEFAULT_MODEL")
+AUTH_MODE = os.getenv("OCI_GENAI_AUTH_MODE", "instance_principal").strip().lower()
+OCI_CONFIG_PROFILE = os.getenv("OCI_CONFIG_PROFILE", "DEFAULT")
+
+if AUTH_MODE not in {"session", "instance_principal"}:
+    raise RuntimeError(
+        "OCI_GENAI_AUTH_MODE must be 'session' or 'instance_principal'"
+    )
 
 try:
     MODEL_ALIASES = json.loads(

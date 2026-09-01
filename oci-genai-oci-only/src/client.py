@@ -1,10 +1,19 @@
+import httpx
 from openai import OpenAI
+from oci_openai import OciInstancePrincipalAuth, OciSessionAuth
 
-from config import API_KEY, BASE_URL, PROJECT_ID
+from config import AUTH_MODE, BASE_URL, OCI_CONFIG_PROFILE, PROJECT_ID
+
+
+def build_auth():
+    if AUTH_MODE == "session":
+        return OciSessionAuth(profile_name=OCI_CONFIG_PROFILE)
+    return OciInstancePrincipalAuth()
 
 
 client = OpenAI(
     base_url=BASE_URL,
-    api_key=API_KEY,
+    api_key="not-used",
     project=PROJECT_ID,
+    http_client=httpx.Client(auth=build_auth()),
 )

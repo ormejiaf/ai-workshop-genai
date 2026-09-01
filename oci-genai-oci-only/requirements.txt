@@ -1,4 +1,7 @@
 openai
+oci-genai-auth
 pydantic
 python-dotenv
 requests
+chromadb
+sentence-transformers
