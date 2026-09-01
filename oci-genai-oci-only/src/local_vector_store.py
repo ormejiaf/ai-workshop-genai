@@ -1,15 +1,23 @@
+import os
 from pathlib import Path
 
-from config import EMBEDDING_MODEL, VECTOR_DB_DIR
 from sqlite_compat import enable_modern_sqlite
 
 enable_modern_sqlite()
 
 import chromadb
+from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 
 
 COLLECTION_NAME = "university_policies"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+VECTOR_DB_DIR = PROJECT_ROOT / ".chroma"
+load_dotenv(PROJECT_ROOT / ".env")
+EMBEDDING_MODEL = os.getenv(
+    "EMBEDDING_MODEL",
+    "sentence-transformers/all-MiniLM-L6-v2",
+)
 
 
 def collection():

@@ -10,11 +10,6 @@ DATA_DIR = PROJECT_ROOT / "data"
 SUBMISSIONS_DIR = DATA_DIR / "submissions"
 RESULTS_DIR = DATA_DIR / "results"
 KNOWLEDGE_DIR = DATA_DIR / "knowledge"
-VECTOR_DB_DIR = PROJECT_ROOT / ".chroma"
-EMBEDDING_MODEL = os.getenv(
-    "EMBEDDING_MODEL",
-    "sentence-transformers/all-MiniLM-L6-v2",
-)
 
 load_dotenv(PROJECT_ROOT / ".env")
 
