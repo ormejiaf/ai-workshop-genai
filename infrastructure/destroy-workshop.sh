@@ -84,21 +84,32 @@ empty_if_missing() {
   esac
 }
 
+lookup_resource() {
+  local label="$1"
+  shift
+  local value
+  if ! value="$("$@")"; then
+    echo "No se pudo consultar $label. La limpieza se cancela sin eliminar recursos." >&2
+    exit 1
+  fi
+  empty_if_missing "$value"
+}
+
 if [[ -n "$PROJECT_ID_ARG" ]]; then
   PROJECT_ID="$PROJECT_ID_ARG"
 else
-  PROJECT_ID="$(empty_if_missing "$("${OCI[@]}" generative-ai generative-ai-project-collection list-generative-ai-projects \
+  PROJECT_ID="$(lookup_resource "el proyecto de OCI Generative AI" "${OCI[@]}" generative-ai generative-ai-project-collection list-generative-ai-projects \
     --compartment-id "$COMPARTMENT_OCID" --display-name "$PROJECT_NAME" --all \
-    --query 'data[0].id' --raw-output)")"
+    --query 'data[0].id' --raw-output)"
 fi
 
-DYNAMIC_GROUP_ID="$(empty_if_missing "$("${OCI[@]}" iam dynamic-group list \
+DYNAMIC_GROUP_ID="$(lookup_resource "el Dynamic Group" "${OCI[@]}" iam dynamic-group list \
   --compartment-id "$TENANCY_OCID" --name "$DYNAMIC_GROUP_NAME" --all \
-  --query 'data[0].id' --raw-output)")"
+  --query 'data[0].id' --raw-output)"
 
-POLICY_ID="$(empty_if_missing "$("${OCI[@]}" iam policy list \
+POLICY_ID="$(lookup_resource "la política IAM" "${OCI[@]}" iam policy list \
   --compartment-id "$TENANCY_OCID" --name "$POLICY_NAME" --all \
-  --query 'data[0].id' --raw-output)")"
+  --query 'data[0].id' --raw-output)"
 
 HAS_VM=false
 if [[ "$SKIP_VM" == false ]] && { [[ -r "$STATE_FILE" ]] || [[ -n "$INSTANCE_ID_ARG" ]]; }; then
