@@ -48,7 +48,7 @@ except json.JSONDecodeError as exc:
 
 COUNTRIES_API_BASE_URL = os.getenv(
     "COUNTRIES_API_BASE_URL",
-    "https://restcountries.com/v3.1",
+    "https://api.first.org/data/v1",
 )
 
 

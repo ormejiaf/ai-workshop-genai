@@ -379,7 +379,7 @@ cat data/results/solicitud-001/document_review.json
 python src/05_external_validation/05_validate_country.py solicitud-001
 ```
 
-La etapa consulta una API pública de países usando el código de país emisor que el modelo haya extraído del documento de identidad. El resultado se guarda en `external_validation.json`; no valida la identidad, pagos ni historial académico del estudiante.
+La etapa consulta la [API pública de países de FIRST.org](https://api.first.org/v1/get-countries) usando el código ISO alpha-3 que el modelo haya extraído del documento de identidad. El resultado se guarda en `external_validation.json`; no valida la identidad, pagos ni historial académico del estudiante.
 
 ```bash
 cat data/results/solicitud-001/external_validation.json

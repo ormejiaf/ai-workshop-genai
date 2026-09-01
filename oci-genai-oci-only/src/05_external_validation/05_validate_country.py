@@ -15,21 +15,37 @@ from config import COUNTRIES_API_BASE_URL, result_path
 def validate_country(code: str | None) -> dict:
     if not code:
         return {"status": "NOT_AVAILABLE", "reason": "El documento no incluye un código de país."}
+
+    normalized_code = code.strip().upper()
+    if len(normalized_code) != 3:
+        return {
+            "status": "NOT_CONFIRMED",
+            "country_code": normalized_code,
+            "reason": "Se espera un código ISO alpha-3 de tres letras.",
+        }
+
     try:
         response = requests.get(
-            f"{COUNTRIES_API_BASE_URL}/alpha/{code}",
-            params={"fields": "name,cca2,cca3,independent"},
+            f"{COUNTRIES_API_BASE_URL}/countries",
+            params={"scope": "iso"},
             timeout=20,
         )
         response.raise_for_status()
-        country = response.json()[0]
+        countries = response.json().get("data", {})
+        country = countries.get(normalized_code)
+        if not country:
+            return {
+                "status": "NOT_CONFIRMED",
+                "country_code": normalized_code,
+                "reason": "El código no fue encontrado por la fuente externa.",
+            }
         return {
             "status": "CONFIRMED",
-            "country_code": country["cca3"],
-            "country_name": country["name"]["common"],
-            "independent": country.get("independent"),
+            "country_code": normalized_code,
+            "country_name": country["country"],
+            "region": country.get("region"),
         }
-    except requests.RequestException as exc:
+    except (requests.RequestException, ValueError, AttributeError, KeyError) as exc:
         return {"status": "API_ERROR", "reason": str(exc)}
 
 

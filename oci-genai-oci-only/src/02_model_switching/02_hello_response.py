@@ -11,7 +11,11 @@ from client import client
 from config import resolve_model, validate_model_alias
 
 parser = argparse.ArgumentParser(description="Cambio de modelo por alias")
-parser.add_argument("--model", default=None, help="gemini o grok, según .env")
+parser.add_argument(
+    "--model",
+    default=None,
+    help="Alias definido en .env o identificador completo de OCI",
+)
 args = parser.parse_args()
 logical = validate_model_alias(args.model)
 model = resolve_model(logical)
