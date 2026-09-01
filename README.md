@@ -235,13 +235,11 @@ python -m pip install -r oci-genai-oci-only/requirements.txt
 **Descripción:** Oracle Linux 9 incluye SQLite 3.26, pero ChromaDB requiere 3.35 o posterior. El proyecto instala `pysqlite3-binary` y lo activa solo antes de importar ChromaDB. Este comando crea la carpeta persistente `.chroma` y valida la colección local.
 
 ```bash
-python - <<'PY'
-cd oci-genai-oci-only
+cd ~/ai-workshop-genai/oci-genai-oci-only
 PYTHONPATH=src python - <<'PY'
 from local_vector_store import collection
 
 print(f"ChromaDB listo: {collection().name}")
-PY
 PY
 ```
 
@@ -282,11 +280,46 @@ cd ~/ai-workshop-genai/oci-genai-oci-only
 export PYTHONPATH=src
 ```
 
+### Configurar la aplicación
+
+**Descripción:** Las etapas que invocan OCI Generative AI requieren el OCID del proyecto. Copia la plantilla y reemplaza únicamente `<project-ocid>` con el Project OCID creado en OCI.
+
+```bash
+cp .env.example .env
+vi .env
+```
+
+Valores mínimos en la VM:
+
+```text
+OCI_GENAI_PROJECT_ID=<project-ocid>
+OCI_GENAI_REGION=us-chicago-1
+OCI_GENAI_AUTH_MODE=instance_principal
+```
+
+### Datos ficticios incluidos
+
+**Descripción:** El repositorio incluye una solicitud ficticia y sin validez oficial. Permite validar el flujo completo sin usar datos personales reales.
+
+```bash
+ls -1 data/submissions/solicitud-001
+```
+
+El resultado esperado muestra:
+
+```text
+certificado_notas.pdf
+comprobante_abono.png
+documento_identidad.jpg
+```
+
 ### 1. Pregunta abierta
 
 ```bash
 python src/01_basic/01_hello_response.py --model gemini
 ```
+
+**Validación:** debe imprimirse `MODEL: gemini` y una respuesta sobre el uso de modelos multimodales en una universidad.
 
 ### 2. Cambio de modelo
 
@@ -296,6 +329,8 @@ El alias se define una sola vez en `.env` mediante `OCI_GENAI_MODELS_JSON`. Para
 python src/02_model_switching/02_hello_response.py --model grok
 ```
 
+**Validación:** debe imprimirse `MODEL: grok`. El único cambio es el alias pasado como argumento.
+
 ### 3. Análisis multimodal
 
 ```bash
@@ -303,6 +338,8 @@ python src/03_multimodal/03_analyze_documents.py solicitud-001 --model gemini
 ```
 
 El código transforma imágenes y hasta tres páginas de cada PDF en entradas visuales para el modelo. El resultado explica qué detectó y qué no puede confirmar.
+
+**Validación:** debe identificar los tres tipos documentales y señalar que los archivos son ficticios o de demostración.
 
 ### 4. Salida estructurada y persistente
 
@@ -312,6 +349,12 @@ python src/04_structured_output/04_structured_documents.py solicitud-001 --model
 
 El resultado se guarda en `data/results/solicitud-001/document_review.json`. Este JSON puede ser consumido posteriormente por una base de datos o un proceso institucional sin volver a procesar los documentos originales.
 
+```bash
+cat data/results/solicitud-001/document_review.json
+```
+
+**Validación:** el JSON contiene `documents`, `missing_required_documents`, `decision` y `human_review_required`.
+
 ### 5. Validación externa
 
 ```bash
@@ -319,6 +362,12 @@ python src/05_external_validation/05_validate_country.py solicitud-001
 ```
 
 La etapa consulta una API pública de países usando el código de país emisor que el modelo haya extraído del documento de identidad. El resultado se guarda en `external_validation.json`; no valida la identidad, pagos ni historial académico del estudiante.
+
+```bash
+cat data/results/solicitud-001/external_validation.json
+```
+
+**Validación:** si el modelo extrajo `PER`, la respuesta debe indicar el resultado de la corroboración del país. Una falla de la API no invalida por sí sola la solicitud.
 
 ### 6. Base de conocimiento y RAG local
 
@@ -329,5 +378,11 @@ python src/06_rag/08_reservation_with_rag.py solicitud-001 --model gemini
 ```
 
 La primera instrucción fragmenta las políticas de `data/knowledge/`, genera embeddings locales y los persiste en `.chroma`. La última recupera los fragmentos más relevantes, los incorpora al contexto del LLM junto con los JSON anteriores y guarda la conclusión en `reservation_decision.json`.
+
+```bash
+cat data/results/solicitud-001/reservation_decision.json
+```
+
+**Validación:** el JSON final debe incluir `decision`, `rationale`, `blocking_issues` y `policy_sources`.
 
 En una tenancy con cuota disponible, ChromaDB podría reemplazarse por OCI Vector Store y File Search. En este workshop se usa ChromaDB por la limitación de Free Trial; el principio RAG es el mismo: recuperar evidencia relevante antes de pedir la conclusión al modelo.

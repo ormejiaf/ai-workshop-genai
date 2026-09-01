@@ -1,5 +1,7 @@
 # Reglas para reserva de matrícula
 
+Estas reglas son datos de demostración para el workshop.
+
 Aprueba la reserva cuando estén presentes y legibles los tres documentos
 obligatorios y no exista una contradicción relevante entre ellos.
 

@@ -1,5 +1,7 @@
 # Política de revisión humana
 
+Estas reglas son datos de demostración para el workshop.
+
 Una solicitud de matrícula debe pasar a revisión humana cuando el sistema detecta:
 
 1. Información ilegible.

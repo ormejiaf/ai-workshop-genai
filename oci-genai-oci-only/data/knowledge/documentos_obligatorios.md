@@ -1,5 +1,7 @@
 # Documentos obligatorios para reserva de matrícula
 
+Estas reglas son datos de demostración para el workshop.
+
 La solicitud debe incluir estos tres documentos legibles:
 
 1. Documento de identidad.
