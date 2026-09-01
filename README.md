@@ -65,20 +65,6 @@ Completa esta sección en la consola de OCI antes de ejecutar los laboratorios. 
 
 ![Formulario para crear un proyecto de Generative AI](assets/oci-console/12-project-form.jpg)
 
-### 3. Validar modelos disponibles y preparar la configuración
-
-**Descripción:** Abre **Playground → Chat**. En los selectores superiores usa el compartment `<tu-tenancy> (root)`, selecciona un modelo Gemini o Grok disponible y envía la prueba siguiente:
-
-| Campo | Valor |
-|---|---|
-| **Compartment** | `<tu-tenancy> (root)` |
-| **Model** | Un modelo Gemini o Grok disponible en `us-chicago-1` |
-| **Type a message...** | `Resume en una oración qué es OCI Generative AI.` |
-
-Durante el workshop se elegirá el modelo mediante configuración, no modificando el código. La configuración de la aplicación se realiza en la VM, después de clonar el repositorio.
-
-![Playground Chat de OCI Generative AI](assets/oci-console/15-chat-playground.jpg)
-
 ## Preparación del entorno
 
 Cada participante trabaja en su propio tenancy OCI y crea una VM Oracle Linux 9 con IP pública. La creación incluye una VCN, subnet pública, Internet Gateway, tabla de rutas y una security list que permite SSH por TCP/22 desde `0.0.0.0/0`.
@@ -92,7 +78,7 @@ Cada participante trabaja en su propio tenancy OCI y crea una VM Oracle Linux 9 
 **Descripción:** Cloud Shell ya incluye OCI CLI. El script genera una clave RSA compatible con FIPS, crea la red y despliega la VM.
 
 ```bash
-git clone --branch upd-workshop --single-branch <URL_DEL_REPOSITORIO>
+git clone --branch upd-workshop --single-branch https://github.com/ormejiaf/ai-workshop-genai.git
 cd ai-workshop-genai/infrastructure
 chmod +x create-vm.sh destroy-vm.sh destroy-workshop.sh
 REGION=us-chicago-1 ./create-vm.sh
@@ -153,51 +139,6 @@ cat /etc/os-release
 hostname
 ```
 
-### 4. [Opcional] Destruir y recrear el entorno
-
-**Descripción:** Ejecuta esta prueba antes del workshop para confirmar que no quedan recursos residuales entre participantes.
-
-```bash
-./destroy-vm.sh
-```
-
-Confirma escribiendo `DELETE`. El script termina la VM y elimina subnet, security list, tabla de rutas, Internet Gateway y VCN. Después puedes volver a crear el entorno:
-
-```bash
-REGION=us-chicago-1 ./create-vm.sh
-```
-
-Si la VM se creó con una versión anterior de `create-vm.sh` y no existe `.create-vm-state.env`, usa su OCID:
-
-```bash
-REGION=us-chicago-1 ./destroy-vm.sh --instance-id <OCID_DE_LA_VM>
-```
-
-### 5. Eliminar todos los recursos del workshop
-
-**Descripción:** Al finalizar el workshop, ejecuta este comando desde OCI Cloud Shell para eliminar únicamente los recursos con los nombres definidos en esta guía: VM y red, proyecto `genai-workshop-project`, Dynamic Group `genai-workshop-vm` y política `genai-workshop-vm-policy`.
-
-```bash
-cd ~/ai-workshop-genai/infrastructure
-REGION=us-chicago-1 ./destroy-workshop.sh
-```
-
-Primero confirma con `DELETE_WORKSHOP`. Si existe la VM, `destroy-vm.sh` solicitará una segunda confirmación con `DELETE` antes de eliminarla y eliminará su boot volume, subnet, security list, tabla de rutas, Internet Gateway y VCN.
-
-Para una VM creada antes de que se guardara el archivo de estado, especifica su OCID:
-
-```bash
-REGION=us-chicago-1 ./destroy-workshop.sh --instance-id <OCID_DE_LA_VM>
-```
-
-Si ejecutaste `create-vm.sh` desde otra carpeta de Cloud Shell, indica dónde quedó su archivo de estado. Este archivo contiene solamente los OCID de los recursos creados por el script:
-
-```bash
-STATE_FILE=~/poc/.create-vm-state.env REGION=us-chicago-1 ./destroy-workshop.sh
-```
-
-El script busca los recursos IAM y el proyecto por sus nombres exactos, imprime los OCIDs que encontró y no elimina recursos con otro nombre. No borra la clave SSH ni el repositorio de Cloud Shell, porque son archivos locales y no recursos del tenancy.
-
 ## Instalación de software en la VM
 
 Los laboratorios se ejecutan dentro de un entorno virtual de Python 3.12. Además de las dependencias de OCI Generative AI, se instala **ChromaDB** para la base vectorizada local y `sentence-transformers` para generar embeddings en la VM. No se crea ni se requiere un OCI Vector Store.
@@ -219,11 +160,11 @@ git --version
 
 ### 2. Clonar el repositorio y crear el entorno virtual
 
-**Descripción:** Sustituye `<URL_DEL_REPOSITORIO>` por la URL que recibió el participante. El entorno `.venv` aísla las bibliotecas del workshop del sistema operativo.
+**Descripción:** Clona directamente la rama del workshop. El entorno `.venv` aísla las bibliotecas del workshop del sistema operativo.
 
 ```bash
 cd ~
-git clone --branch upd-workshop --single-branch <URL_DEL_REPOSITORIO> ai-workshop-genai
+git clone --branch upd-workshop --single-branch https://github.com/ormejiaf/ai-workshop-genai.git ai-workshop-genai
 cd ai-workshop-genai
 
 python3.12 -m venv .venv
@@ -259,24 +200,26 @@ PY
 
 El resultado esperado incluye `ChromaDB listo: university_policies`.
 
-### 5. Activar el entorno en cada conexión
+## Parte 1: OCI Generative AI directo
 
-**Descripción:** Cada nueva sesión SSH inicia sin el entorno virtual activo. Antes de ejecutar cualquier etapa del workshop, vuelve a activarlo:
+### Antes de iniciar los laboratorios en una nueva sesión SSH
+
+Cada nueva conexión a la VM inicia sin el entorno virtual activo. Ejecuta este bloque una vez, antes de ejecutar cualquier laboratorio:
 
 ```bash
 cd ~/ai-workshop-genai
 source .venv/bin/activate
+cd oci-genai-oci-only
+export PYTHONPATH=src
 ```
 
-Para salir del entorno virtual al terminar:
+Si continúas en la misma sesión SSH, no es necesario repetirlo. Para salir del entorno virtual al finalizar:
 
 ```bash
 deactivate
 ```
 
-## Parte 1: OCI Generative AI directo
-
-Trabaja desde la VM y activa el entorno virtual. Coloca los documentos de cada estudiante en una carpeta, por ejemplo:
+Coloca los documentos de cada estudiante en una carpeta, por ejemplo:
 
 ```text
 oci-genai-oci-only/data/submissions/solicitud-001/
@@ -286,13 +229,6 @@ oci-genai-oci-only/data/submissions/solicitud-001/
 ```
 
 > Usa documentos ficticios o anonimizados. No subas información personal real a un entorno de laboratorio.
-
-Ejecuta los laboratorios desde `oci-genai-oci-only`:
-
-```bash
-cd ~/ai-workshop-genai/oci-genai-oci-only
-export PYTHONPATH=src
-```
 
 ### Configurar la aplicación
 
@@ -322,6 +258,7 @@ EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
 **Descripción:** El repositorio incluye una solicitud ficticia y sin validez oficial. Permite validar el flujo completo sin usar datos personales reales.
 
 ```bash
+ls -1 data/submissions/
 ls -1 data/submissions/solicitud-001
 ```
 
@@ -406,6 +343,10 @@ cat data/results/solicitud-001/external_validation.json
 
 ### 6. Decidir con conocimiento institucional
 
+En una tenancy con cuota disponible, ChromaDB podría reemplazarse por OCI Vector Store y File Search. En este workshop se usa ChromaDB por la limitación de Free Trial; el principio RAG es el mismo: recuperar evidencia relevante antes de pedir la conclusión al modelo.
+
+![Arquitectura del workaround RAG para Free Trial](assets/oci-genai-architecture-free-trial-workaround.png)
+
 ```bash
 python src/06_rag/06_index_knowledge.py
 python src/06_rag/07_search_knowledge.py "¿Qué documentos son obligatorios?"
@@ -420,9 +361,6 @@ cat data/results/solicitud-001/reservation_decision.json
 
 **Validación:** el JSON final debe incluir `decision`, `rationale`, `blocking_issues` y `policy_sources`.
 
-En una tenancy con cuota disponible, ChromaDB podría reemplazarse por OCI Vector Store y File Search. En este workshop se usa ChromaDB por la limitación de Free Trial; el principio RAG es el mismo: recuperar evidencia relevante antes de pedir la conclusión al modelo.
-
-![Arquitectura del workaround RAG para Free Trial](assets/oci-genai-architecture-free-trial-workaround.png)
 
 ### Caso aprobado: solicitud-002
 
@@ -438,3 +376,52 @@ cat data/results/solicitud-002/reservation_decision.json
 ```
 
 **Validación:** el JSON final debe indicar `"decision": "RESERVATION_APPROVED"`, incluir las políticas consultadas y confirmar que se consideró la validación externa.
+
+## Scripts opcionales de limpieza
+
+> **No ejecutes esta sección durante el workshop.** Úsala solo al terminar el laboratorio o cuando necesites reiniciar deliberadamente tu entorno.
+
+### Destruir y recrear solo la VM y su red
+
+Ejecuta este script desde `~/ai-workshop-genai/infrastructure` para eliminar la VM, boot volume, subnet, security list, tabla de rutas, Internet Gateway y VCN creados por `create-vm.sh`:
+
+```bash
+./destroy-vm.sh
+```
+
+Confirma escribiendo `DELETE`. Después, si deseas reconstruir el entorno, ejecuta:
+
+```bash
+REGION=us-chicago-1 ./create-vm.sh
+```
+
+Si la VM se creó sin el archivo `.create-vm-state.env`, indica su OCID:
+
+```bash
+REGION=us-chicago-1 ./destroy-vm.sh --instance-id <OCID_DE_LA_VM>
+```
+
+### Eliminar todos los recursos del workshop
+
+Este script elimina únicamente los recursos con los nombres definidos en esta guía: VM y red, proyecto `genai-workshop-project`, Dynamic Group `genai-workshop-vm` y política `genai-workshop-vm-policy`.
+
+```bash
+cd ~/ai-workshop-genai/infrastructure
+REGION=us-chicago-1 ./destroy-workshop.sh
+```
+
+Primero confirma con `DELETE_WORKSHOP`. Si existe la VM, `destroy-vm.sh` solicitará una segunda confirmación con `DELETE` antes de eliminarla.
+
+Para una VM creada antes de que se guardara el archivo de estado, especifica su OCID:
+
+```bash
+REGION=us-chicago-1 ./destroy-workshop.sh --instance-id <OCID_DE_LA_VM>
+```
+
+Si ejecutaste `create-vm.sh` desde otra carpeta de Cloud Shell, indica dónde quedó el archivo de estado:
+
+```bash
+STATE_FILE=~/poc/.create-vm-state.env REGION=us-chicago-1 ./destroy-workshop.sh
+```
+
+El script busca los recursos IAM y el proyecto por sus nombres exactos, muestra los OCID encontrados y no elimina recursos con otro nombre. No borra la clave SSH ni el repositorio de Cloud Shell, porque son archivos locales.
