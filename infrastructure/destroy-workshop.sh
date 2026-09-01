@@ -115,7 +115,7 @@ if [[ -n "$PROJECT_ID_ARG" ]]; then
 else
   PROJECT_ID="$(lookup_resource "el proyecto de OCI Generative AI" "${OCI[@]}" generative-ai generative-ai-project-collection list-generative-ai-projects \
     --compartment-id "$COMPARTMENT_OCID" --display-name "$PROJECT_NAME" --all \
-    --query 'data[0].id' --raw-output)"
+    --query 'data.items[0].id' --raw-output)"
 fi
 
 DYNAMIC_GROUP_ID="$(lookup_resource "el Dynamic Group" "${OCI[@]}" iam dynamic-group list \
