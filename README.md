@@ -190,6 +190,12 @@ Para una VM creada antes de que se guardara el archivo de estado, especifica su 
 REGION=us-chicago-1 ./destroy-workshop.sh --instance-id <OCID_DE_LA_VM>
 ```
 
+Si ejecutaste `create-vm.sh` desde otra carpeta de Cloud Shell, indica dónde quedó su archivo de estado. Este archivo contiene solamente los OCID de los recursos creados por el script:
+
+```bash
+STATE_FILE=~/poc/.create-vm-state.env REGION=us-chicago-1 ./destroy-workshop.sh
+```
+
 El script busca los recursos IAM y el proyecto por sus nombres exactos, imprime los OCIDs que encontró y no elimina recursos con otro nombre. No borra la clave SSH ni el repositorio de Cloud Shell, porque son archivos locales y no recursos del tenancy.
 
 ## Instalación de software en la VM

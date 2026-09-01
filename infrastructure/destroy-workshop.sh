@@ -63,10 +63,25 @@ oci_config_value() {
   ' "$OCI_CONFIG_FILE"
 }
 
+state_value() {
+  local key="$1"
+  [[ -r "$STATE_FILE" ]] || return 0
+  awk -v key="$key" '
+    $0 ~ "^" key "=" {
+      sub("^" key "=", "")
+      gsub(/^\047|\047$/, "")
+      print
+      exit
+    }
+  ' "$STATE_FILE"
+}
+
 CONFIG_REGION="$(oci_config_value region || true)"
 CONFIG_TENANCY_OCID="$(oci_config_value tenancy || true)"
-REGION="${REGION:-${OCI_REGION:-$CONFIG_REGION}}"
-TENANCY_OCID="${TENANCY_OCID:-${OCI_TENANCY:-$CONFIG_TENANCY_OCID}}"
+STATE_REGION="$(state_value REGION || true)"
+STATE_TENANCY_OCID="$(state_value COMPARTMENT_OCID || true)"
+REGION="${REGION:-${OCI_REGION:-${CONFIG_REGION:-$STATE_REGION}}}"
+TENANCY_OCID="${TENANCY_OCID:-${OCI_TENANCY:-${CONFIG_TENANCY_OCID:-$STATE_TENANCY_OCID}}}"
 COMPARTMENT_OCID="${COMPARTMENT_OCID:-$TENANCY_OCID}"
 
 if [[ -z "$REGION" || -z "$TENANCY_OCID" ]]; then
