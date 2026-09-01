@@ -26,24 +26,26 @@ def validate_country(code: str | None) -> dict:
 
     try:
         response = requests.get(
-            f"{COUNTRIES_API_BASE_URL}/countries",
-            params={"scope": "iso"},
+            f"{COUNTRIES_API_BASE_URL}/country/{normalized_code}",
+            params={"format": "json"},
             timeout=20,
         )
         response.raise_for_status()
-        countries = response.json().get("data", {})
-        country = countries.get(normalized_code)
-        if not country:
+        payload = response.json()
+        countries = payload[1] if isinstance(payload, list) and len(payload) > 1 else []
+        if not countries:
             return {
                 "status": "NOT_CONFIRMED",
                 "country_code": normalized_code,
                 "reason": "El código no fue encontrado por la fuente externa.",
             }
+
+        country = countries[0]
         return {
             "status": "CONFIRMED",
             "country_code": normalized_code,
-            "country_name": country["country"],
-            "region": country.get("region"),
+            "country_name": country["name"],
+            "region": country.get("region", {}).get("value"),
         }
     except (requests.RequestException, ValueError, AttributeError, KeyError) as exc:
         return {"status": "API_ERROR", "reason": str(exc)}
