@@ -75,23 +75,9 @@ Completa esta sección en la consola de OCI antes de ejecutar los laboratorios. 
 | **Model** | Un modelo Gemini o Grok disponible en `us-chicago-1` |
 | **Type a message...** | `Resume en una oración qué es OCI Generative AI.` |
 
-Durante el workshop se elegirá el modelo mediante configuración, no modificando el código.
+Durante el workshop se elegirá el modelo mediante configuración, no modificando el código. La configuración de la aplicación se realiza en la VM, después de clonar el repositorio.
 
 ![Playground Chat de OCI Generative AI](assets/oci-console/15-chat-playground.jpg)
-
-Antes de continuar, crea `oci-genai-oci-only/.env` desde `.env.example` y registra los identificadores que utilizará la aplicación. Elige el modo de autenticación según dónde ejecutes los laboratorios:
-
-```text
-OCI_GENAI_REGION=us-chicago-1
-OCI_GENAI_PROJECT_ID=<PROJECT_OCID>
-
-# En OCI Cloud Shell
-OCI_GENAI_AUTH_MODE=session
-OCI_CONFIG_PROFILE=DEFAULT
-
-# En la VM de OCI
-OCI_GENAI_AUTH_MODE=instance_principal
-```
 
 ## Preparación del entorno
 
@@ -108,7 +94,7 @@ Cada participante trabaja en su propio tenancy OCI y crea una VM Oracle Linux 9 
 ```bash
 git clone --branch upd-workshop --single-branch <URL_DEL_REPOSITORIO>
 cd ai-workshop-genai/infrastructure
-chmod +x create-vm.sh destroy-vm.sh
+chmod +x create-vm.sh destroy-vm.sh destroy-workshop.sh
 REGION=us-chicago-1 ./create-vm.sh
 ```
 
@@ -186,6 +172,25 @@ Si la VM se creó con una versión anterior de `create-vm.sh` y no existe `.crea
 ```bash
 REGION=us-chicago-1 ./destroy-vm.sh --instance-id <OCID_DE_LA_VM>
 ```
+
+### 5. Eliminar todos los recursos del workshop
+
+**Descripción:** Al finalizar el workshop, ejecuta este comando desde OCI Cloud Shell para eliminar únicamente los recursos con los nombres definidos en esta guía: VM y red, proyecto `genai-workshop-project`, Dynamic Group `genai-workshop-vm` y política `genai-workshop-vm-policy`.
+
+```bash
+cd ~/ai-workshop-genai/infrastructure
+REGION=us-chicago-1 ./destroy-workshop.sh
+```
+
+Primero confirma con `DELETE_WORKSHOP`. Si existe la VM, `destroy-vm.sh` solicitará una segunda confirmación con `DELETE` antes de eliminarla y eliminará su boot volume, subnet, security list, tabla de rutas, Internet Gateway y VCN.
+
+Para una VM creada antes de que se guardara el archivo de estado, especifica su OCID:
+
+```bash
+REGION=us-chicago-1 ./destroy-workshop.sh --instance-id <OCID_DE_LA_VM>
+```
+
+El script busca los recursos IAM y el proyecto por sus nombres exactos, imprime los OCIDs que encontró y no elimina recursos con otro nombre. No borra la clave SSH ni el repositorio de Cloud Shell, porque son archivos locales y no recursos del tenancy.
 
 ## Instalación de software en la VM
 
@@ -285,19 +290,25 @@ export PYTHONPATH=src
 
 ### Configurar la aplicación
 
-**Descripción:** Las etapas que invocan OCI Generative AI requieren el OCID del proyecto. Copia la plantilla y reemplaza únicamente `<project-ocid>` con el Project OCID creado en OCI.
+**Descripción:** Las etapas que invocan OCI Generative AI requieren el OCID del proyecto. Copia la plantilla y reemplaza únicamente `<project-ocid>` con el Project OCID creado en OCI. Conserva los demás valores de la plantilla para Chicago.
 
 ```bash
 cp .env.example .env
 vi .env
 ```
 
-Valores mínimos en la VM:
+Valores que deben quedar en la VM:
 
 ```text
 OCI_GENAI_PROJECT_ID=<project-ocid>
 OCI_GENAI_REGION=us-chicago-1
 OCI_GENAI_AUTH_MODE=instance_principal
+OCI_CONFIG_PROFILE=DEFAULT
+OCI_GENAI_DEFAULT_MODEL=gemini
+OCI_GENAI_MODELS_JSON={"gemini":"google.gemini-2.5-flash","grok":"xai.grok-4.3"}
+OCI_GENAI_BASE_URL="https://inference.generativeai.us-chicago-1.oci.oraclecloud.com/openai/v1"
+COUNTRIES_API_BASE_URL=https://api.worldbank.org/v2
+EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
 ```
 
 ### Datos ficticios incluidos
@@ -404,3 +415,18 @@ cat data/results/solicitud-001/reservation_decision.json
 **Validación:** el JSON final debe incluir `decision`, `rationale`, `blocking_issues` y `policy_sources`.
 
 En una tenancy con cuota disponible, ChromaDB podría reemplazarse por OCI Vector Store y File Search. En este workshop se usa ChromaDB por la limitación de Free Trial; el principio RAG es el mismo: recuperar evidencia relevante antes de pedir la conclusión al modelo.
+
+### Caso aprobado: solicitud-002
+
+La carpeta `data/submissions/solicitud-002` contiene documentos ficticios, completos y coherentes entre sí: la misma estudiante, código de postulante y periodo `2026-I`. Ejecuta el flujo completo para obtener una reserva aprobada conforme a las políticas indexadas:
+
+```bash
+python src/03_multimodal/03_analyze_documents.py solicitud-002 --model gemini
+python src/04_structured_output/04_structured_documents.py solicitud-002 --model gemini
+python src/05_external_validation/05_validate_country.py solicitud-002
+python src/06_rag/06_index_knowledge.py
+python src/06_rag/08_reservation_with_rag.py solicitud-002 --model gemini
+cat data/results/solicitud-002/reservation_decision.json
+```
+
+**Validación:** el JSON final debe indicar `"decision": "RESERVATION_APPROVED"`, incluir las políticas consultadas y confirmar que se consideró la validación externa.
