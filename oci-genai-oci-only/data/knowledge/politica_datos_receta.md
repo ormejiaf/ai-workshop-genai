@@ -1,24 +1,10 @@
-# Definición de campos de receta - Clínica Demo
+# Documentos obligatorios para reserva de matrícula
 
-## Fecha de emisión
+La solicitud debe incluir estos tres documentos legibles:
 
-Corresponde a la fecha en la que se generó la receta.
+1. Documento de identidad.
+2. Certificado de notas o historial académico.
+3. Boleta de pago, transferencia o comprobante de abono.
 
-## Dosis
-
-Indica la cantidad administrada en cada evento de administración.
-
-## Frecuencia
-
-Indica con qué periodicidad debe administrarse el medicamento.
-
-## Duración
-
-Indica durante cuánto tiempo se mantiene la instrucción.
-
-## Cantidad total prescrita
-
-Representa el número total de unidades prescritas explícitamente en el documento.
-
-La cantidad total prescrita no debe inferirse automáticamente a partir de
-dosis, frecuencia y duración salvo que una regla específica del proceso lo indique.
+El proceso identifica la presencia y legibilidad de los documentos. No autentica
+la identidad del estudiante ni sustituye la revisión oficial de la universidad.

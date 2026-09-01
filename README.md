@@ -1,6 +1,6 @@
 # Workshop: OCI Generative AI y procesamiento multimodal
 
-Este workshop construye un flujo de procesamiento inteligente de imágenes, PDF y video con OCI Generative AI. Combina modelos multimodales, salida estructurada, validación externa y una base de conocimiento para producir conclusiones trazables.
+Este workshop implementa una revisión de reserva de matrícula universitaria con OCI Generative AI. El flujo analiza un documento de identidad, certificado de notas y comprobante de abono para determinar si la solicitud cuenta con evidencia suficiente.
 
 ## Objetivos de aprendizaje
 
@@ -8,9 +8,9 @@ Al finalizar, cada participante podrá:
 
 - Consumir directamente Gemini o Grok mediante OCI Generative AI.
 - Cambiar de modelo mediante configuración, sin modificar el código.
-- Procesar y analizar contenido multimodal.
+- Procesar y contextualizar imágenes y PDF de una solicitud.
 - Obtener respuestas JSON con un esquema validable.
-- Contrastar la información con una fuente externa, como CIMA.
+- Contrastar un dato no sensible extraído del documento con una API pública.
 - Usar una base de conocimiento vectorizada local y RAG para fundamentar una conclusión con políticas del negocio.
 
 ![Arquitectura de OCI Generative AI](assets/oci-genai-architecture.png)
@@ -19,16 +19,16 @@ Al finalizar, cada participante podrá:
 
 | Etapa | Tema | Resultado |
 |---|---|---|
-| 1 | Consumo directo | Una llamada a Gemini o Grok a través de OCI Generative AI. |
+| 1 | Consumo directo | Una pregunta abierta sobre el proceso universitario. |
 | 2 | Cambio de modelo | Selección por alias lógico, sin editar código. |
-| 3 | Multimodal | Procesamiento y análisis de imágenes, PDF o video según el modelo. |
-| 4 | Salida estructurada | Respuesta JSON validable. |
-| 5 | Validación externa | Evidencia complementaria desde CIMA. |
-| 6 | Base vectorizada local y RAG | Conclusión basada en políticas institucionales recuperadas. |
+| 3 | Multimodal | Análisis y contexto de los documentos entregados. |
+| 4 | Salida estructurada | Un JSON persistente de la revisión. |
+| 5 | Validación externa | Corroboración no sensible del país emisor. |
+| 6 | Base vectorizada local y RAG | Decisión contrastada con políticas institucionales. |
 
 ```text
-Contenido multimodal → OCI Generative AI → JSON estructurado
-        → validación externa → ChromaDB / RAG → conclusión trazable
+Documentos del estudiante → OCI Generative AI → JSON persistente
+        → validación externa → ChromaDB / RAG → decisión trazable
 ```
 
 ## Configuración de OCI Generative AI
@@ -106,7 +106,7 @@ Cada participante trabaja en su propio tenancy OCI y crea una VM Oracle Linux 9 
 **Descripción:** Cloud Shell ya incluye OCI CLI. El script genera una clave RSA compatible con FIPS, crea la red y despliega la VM.
 
 ```bash
-git clone <URL_DEL_REPOSITORIO>
+git clone --branch upd-workshop --single-branch <URL_DEL_REPOSITORIO>
 cd ai-workshop-genai/infrastructure
 chmod +x create-vm.sh destroy-vm.sh
 REGION=us-chicago-1 ./create-vm.sh
@@ -212,9 +212,8 @@ git --version
 
 ```bash
 cd ~
-git clone <URL_DEL_REPOSITORIO> ai-workshop-genai
+git clone --branch upd-workshop --single-branch <URL_DEL_REPOSITORIO> ai-workshop-genai
 cd ai-workshop-genai
-git checkout upd-workshop
 
 python3.12 -m venv .venv
 source .venv/bin/activate
@@ -231,28 +230,22 @@ Si el repositorio ya existe en la VM, entra en su directorio y ejecuta únicamen
 python -m pip install -r oci-genai-oci-only/requirements.txt
 ```
 
-### 4. Validar ChromaDB y los embeddings locales
+### 4. Corregir SQLite y validar ChromaDB
 
-**Descripción:** Este comando crea la carpeta persistente `.chroma` en el repositorio y valida que ChromaDB puede abrir una colección. Los documentos y sus vectores permanecerán en el disco de cada VM.
+**Descripción:** Oracle Linux 9 incluye SQLite 3.26, pero ChromaDB requiere 3.35 o posterior. El proyecto instala `pysqlite3-binary` y lo activa solo antes de importar ChromaDB. Este comando crea la carpeta persistente `.chroma` y valida la colección local.
 
 ```bash
 python - <<'PY'
-from pathlib import Path
+cd oci-genai-oci-only
+PYTHONPATH=src python - <<'PY'
+from local_vector_store import collection
 
-import chromadb
-import sentence_transformers
-
-database_path = Path.cwd() / ".chroma"
-client = chromadb.PersistentClient(path=str(database_path))
-collection = client.get_or_create_collection("workshop_knowledge")
-
-print(f"ChromaDB listo: {database_path}")
-print(f"Colección: {collection.name}")
-print(f"sentence-transformers: {sentence_transformers.__version__}")
+print(f"ChromaDB listo: {collection().name}")
+PY
 PY
 ```
 
-El resultado esperado incluye `ChromaDB listo`, el nombre de la colección `workshop_knowledge` y la versión de `sentence-transformers`.
+El resultado esperado incluye `ChromaDB listo: university_policies`. Si antes ejecutaste la validación anterior, vuelve a instalar dependencias y usa este comando; ya no importes `chromadb` directamente en Oracle Linux 9.
 
 ### 5. Activar el entorno en cada conexión
 
@@ -269,23 +262,72 @@ Para salir del entorno virtual al terminar:
 deactivate
 ```
 
-> **Próxima etapa:** el código de `oci-genai-oci-only/src/06_rag/` se adaptará para cargar las políticas en esta colección local y recuperar el contexto antes de invocar el LLM.
-
-## Estructura del repositorio
-
-```text
-ai-workshop-genai/
-├── assets/                 # Diagrama de arquitectura
-├── infrastructure/         # Scripts OCI CLI para crear y destruir el entorno
-├── oci-genai-oci-only/     # Parte 1: OCI Generative AI directo y RAG local
-├── oci-genai-litellm/      # Parte 2: LiteLLM y abstracción de modelos
-└── README.md               # Guía única del workshop
-```
-
 ## Parte 1: OCI Generative AI directo
 
-La carpeta `oci-genai-oci-only/` contiene las seis etapas centrales: consumo directo, cambio de modelo, multimodalidad, salida estructurada, validación CIMA y RAG con ChromaDB local.
+Trabaja desde la VM y activa el entorno virtual. Coloca los documentos de cada estudiante en una carpeta, por ejemplo:
 
-## Parte 2: LiteLLM
+```text
+oci-genai-oci-only/data/submissions/solicitud-001/
+├── documento_identidad.jpg
+├── certificado_notas.pdf
+└── comprobante_abono.png
+```
 
-La carpeta `oci-genai-litellm/` incorpora LiteLLM como proxy local para enrutar y comparar modelos sin mezclar esta abstracción con la implementación directa de OCI Generative AI.
+> Usa documentos ficticios o anonimizados. No subas información personal real a un entorno de laboratorio.
+
+Ejecuta los laboratorios desde `oci-genai-oci-only`:
+
+```bash
+cd ~/ai-workshop-genai/oci-genai-oci-only
+export PYTHONPATH=src
+```
+
+### 1. Pregunta abierta
+
+```bash
+python src/01_basic/01_hello_response.py --model gemini
+```
+
+### 2. Cambio de modelo
+
+El alias se define una sola vez en `.env` mediante `OCI_GENAI_MODELS_JSON`. Para cambiar de modelo, cambia únicamente el argumento:
+
+```bash
+python src/02_model_switching/02_hello_response.py --model grok
+```
+
+### 3. Análisis multimodal
+
+```bash
+python src/03_multimodal/03_analyze_documents.py solicitud-001 --model gemini
+```
+
+El código transforma imágenes y hasta tres páginas de cada PDF en entradas visuales para el modelo. El resultado explica qué detectó y qué no puede confirmar.
+
+### 4. Salida estructurada y persistente
+
+```bash
+python src/04_structured_output/04_structured_documents.py solicitud-001 --model gemini
+```
+
+El resultado se guarda en `data/results/solicitud-001/document_review.json`. Este JSON puede ser consumido posteriormente por una base de datos o un proceso institucional sin volver a procesar los documentos originales.
+
+### 5. Validación externa
+
+```bash
+python src/05_external_validation/05_validate_country.py solicitud-001
+```
+
+La etapa consulta una API pública de países usando el código de país emisor que el modelo haya extraído del documento de identidad. El resultado se guarda en `external_validation.json`; no valida la identidad, pagos ni historial académico del estudiante.
+
+### 6. Base de conocimiento y RAG local
+
+```bash
+python src/06_rag/06_index_knowledge.py
+python src/06_rag/07_search_knowledge.py "¿Qué documentos son obligatorios?"
+python src/06_rag/08_reservation_with_rag.py solicitud-001 --model gemini
+```
+
+La primera instrucción fragmenta las políticas de `data/knowledge/`, genera embeddings locales y los persiste en `.chroma`. La última recupera los fragmentos más relevantes, los incorpora al contexto del LLM junto con los JSON anteriores y guarda la conclusión en `reservation_decision.json`.
+
+En una tenancy con cuota disponible, ChromaDB podría reemplazarse por OCI Vector Store y File Search. En este workshop se usa ChromaDB por la limitación de Free Trial; el principio RAG es el mismo: recuperar evidencia relevante antes de pedir la conclusión al modelo.

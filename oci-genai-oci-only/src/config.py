@@ -7,9 +7,14 @@ from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
-RECIPES_DIR = DATA_DIR / "recipes"
-EXTRACTED_DIR = RECIPES_DIR / "extracted"
+SUBMISSIONS_DIR = DATA_DIR / "submissions"
+RESULTS_DIR = DATA_DIR / "results"
 KNOWLEDGE_DIR = DATA_DIR / "knowledge"
+VECTOR_DB_DIR = PROJECT_ROOT / ".chroma"
+EMBEDDING_MODEL = os.getenv(
+    "EMBEDDING_MODEL",
+    "sentence-transformers/all-MiniLM-L6-v2",
+)
 
 load_dotenv(PROJECT_ROOT / ".env")
 
@@ -27,9 +32,6 @@ def require_env(name: str) -> str:
 PROJECT_ID = require_env("OCI_GENAI_PROJECT_ID")
 REGION = require_env("OCI_GENAI_REGION")
 BASE_URL = require_env("OCI_GENAI_BASE_URL")
-# La etapa RAG local no usa un OCI Vector Store. Se mantiene como variable
-# opcional mientras se migra el material anterior del workshop.
-VECTOR_STORE_ID = os.getenv("OCI_GENAI_VECTOR_STORE_ID")
 DEFAULT_MODEL = require_env("OCI_GENAI_DEFAULT_MODEL")
 AUTH_MODE = os.getenv("OCI_GENAI_AUTH_MODE", "instance_principal").strip().lower()
 OCI_CONFIG_PROFILE = os.getenv("OCI_CONFIG_PROFILE", "DEFAULT")
@@ -49,12 +51,10 @@ except json.JSONDecodeError as exc:
         'for example: {"gemini":"model-id","grok":"model-id"}'
     ) from exc
 
-CIMA_BASE_URL = os.getenv(
-    "CIMA_BASE_URL",
-    "https://cima.aemps.es/cima/rest",
+COUNTRIES_API_BASE_URL = os.getenv(
+    "COUNTRIES_API_BASE_URL",
+    "https://restcountries.com/v3.1",
 )
-CIMA_MAX_RESULTS = int(os.getenv("CIMA_MAX_RESULTS", "2"))
-CIMA_MAX_TO_EVALUATE = int(os.getenv("CIMA_MAX_TO_EVALUATE", "4"))
 
 
 def resolve_model(model: str | None = None) -> str:
@@ -72,13 +72,10 @@ def validate_model_alias(model: str | None = None) -> str:
     return logical
 
 
-def recipe_image_path(recipe_name: str) -> Path:
-    return RECIPES_DIR / Path(recipe_name).name
+def submission_path(submission: str) -> Path:
+    path = Path(submission)
+    return path if path.is_absolute() else SUBMISSIONS_DIR / path
 
 
-def extracted_path(image_path: Path) -> Path:
-    return EXTRACTED_DIR / f"{image_path.stem}_extracted.json"
-
-
-def external_validation_path(image_path: Path) -> Path:
-    return EXTRACTED_DIR / f"{image_path.stem}_external_validation.json"
+def result_path(submission: str, filename: str) -> Path:
+    return RESULTS_DIR / Path(submission).name / filename

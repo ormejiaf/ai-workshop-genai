@@ -10,8 +10,8 @@ import argparse
 from client import client
 from config import resolve_model, validate_model_alias
 
-parser = argparse.ArgumentParser(description="Model switching")
-parser.add_argument("model", nargs="?", default=None)
+parser = argparse.ArgumentParser(description="Cambio de modelo por alias")
+parser.add_argument("--model", default=None, help="gemini o grok, según .env")
 args = parser.parse_args()
 logical = validate_model_alias(args.model)
 model = resolve_model(logical)
@@ -19,9 +19,8 @@ model = resolve_model(logical)
 response = client.responses.create(
     model=model,
     input=(
-        "Responde únicamente:"
-        "OCI Generative AI funcionando con el modelo seleccionado."
-        "Explica en una frase qué ventaja ofrece una API compatible con OpenAI."
+        "En una oración, explica qué información puede verificarse en un "
+        "certificado de notas para una reserva de matrícula."
     ),
 )
 
