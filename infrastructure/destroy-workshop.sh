@@ -87,9 +87,9 @@ empty_if_missing() {
 if [[ -n "$PROJECT_ID_ARG" ]]; then
   PROJECT_ID="$PROJECT_ID_ARG"
 else
-  PROJECT_ID="$(empty_if_missing "$("${OCI[@]}" generative-ai generative-ai-project list \
-    --compartment-id "$COMPARTMENT_OCID" --all \
-    --query "data[?\"display-name\"=='$PROJECT_NAME'].id | [0]" --raw-output)")"
+  PROJECT_ID="$(empty_if_missing "$("${OCI[@]}" generative-ai generative-ai-project-collection list-generative-ai-projects \
+    --compartment-id "$COMPARTMENT_OCID" --display-name "$PROJECT_NAME" --all \
+    --query 'data[0].id' --raw-output)")"
 fi
 
 DYNAMIC_GROUP_ID="$(empty_if_missing "$("${OCI[@]}" iam dynamic-group list \
