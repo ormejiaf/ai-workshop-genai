@@ -422,6 +422,8 @@ cat data/results/solicitud-001/reservation_decision.json
 
 En una tenancy con cuota disponible, ChromaDB podría reemplazarse por OCI Vector Store y File Search. En este workshop se usa ChromaDB por la limitación de Free Trial; el principio RAG es el mismo: recuperar evidencia relevante antes de pedir la conclusión al modelo.
 
+![Arquitectura del workaround RAG para Free Trial](assets/oci-genai-architecture-free-trial-workaround.png)
+
 ### Caso aprobado: solicitud-002
 
 La carpeta `data/submissions/solicitud-002` contiene documentos ficticios, completos y coherentes entre sí: la misma estudiante, código de postulante y periodo `2026-I`. Ejecuta el flujo completo para obtener una reserva aprobada conforme a las políticas indexadas:
